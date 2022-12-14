@@ -40,6 +40,32 @@ module.exports = {
 
     async updateProduct(req, res, next) {
         try {
+            const updatedProduct = await productModel.findByIdAndUpdate(
+                req.params.productId,
+                req.body,
+                { new: true },
+            );
+
+            if (!updatedProduct) {
+                return res.status(404).send();
+            }
+
+            return res.status(200).json(updatedProduct);
+
+        } catch (e) {
+            return next(e);
+        }
+    },
+
+    async deleteProduct(req, res, next) {
+        try {
+            const deletedProduct = await productModel.findByIdAndDelete(req.params.productId);
+
+            if (!deletedProduct) {
+                return res.status(404).send();
+            }
+
+            return res.status(200).json(deletedProduct);
 
         } catch (e) {
             return next(e);

@@ -18,8 +18,11 @@ const allProducts = require('../data/all_product.json');
 productModel.create = jest.fn(); // Mocking
 productModel.find = jest.fn();
 productModel.findById = jest.fn();
+productModel.findByIdAndUpdate = jest.fn();
+productModel.findByIdAndDelete = jest.fn();
 
 const productId = "51gddaswersddfs";
+const updatedProduct = { name: 'update name', description: 'updated description' };
 let req, res, next;
 beforeEach(() => {
     req = httpMocks.createRequest();
@@ -131,5 +134,74 @@ describe('Product Controller Get By Id', () => {
 describe('Product Controller Update', () => {
     it('update 컨트롤러 있냐', () => {
         expect(typeof productController.updateProduct).toBe('function');
+    });
+    it('update 컨트롤러 호출될 때 Model.findByIdAndUpdate 함수 불러지냐', async () => {
+        req.params.productId = productId;
+        req.body = updatedProduct;
+        await productController.updateProduct(req, res, next);
+        expect(productModel.findByIdAndUpdate).toHaveBeenCalledWith(
+            productId,
+            { name: 'update name', description: 'updated description' },
+            { new: true },
+        );
+    });
+    it('200 return 잘되냐', async () => {
+        req.params.productId = productId;
+        req.body = updatedProduct;
+        productModel.findByIdAndUpdate.mockReturnValue(updatedProduct);
+        await productController.updateProduct(req, res, next);
+        expect(res._isEndCalled()).toBeTruthy();
+        expect(res.statusCode).toBe(200);
+        expect(res._getJSONData()).toStrictEqual(updatedProduct);
+    });
+
+    it('404 return 잘되냐', async () => {
+        productModel.findByIdAndUpdate.mockReturnValue(null);
+        await productController.updateProduct(req, res, next);
+        expect(res.statusCode).toBe(404);
+        expect(res._isEndCalled).toBeTruthy();
+    });
+
+    it('error handle', async () => {
+        const errorMessage = { message: 'Error' };
+        const rejectPromise = Promise.reject(errorMessage);
+        productModel.findByIdAndUpdate.mockReturnValue(rejectPromise);
+        await productController.updateProduct(req, res, next);
+        expect(next).toBeCalledWith(errorMessage);
+    });
+});
+
+describe('Product Controller Delete', () => {
+    it('delete 컨트롤러 있냐', () => {
+        expect(typeof productController.deleteProduct).toBe('function');
+    });
+    it('update 컨트롤러 호출될 때 Model.findByIdAndDelete 함수 불러지냐', async () => {
+        req.params.productId = productId;
+        await productController.deleteProduct(req, res, next);
+        expect(productModel.findByIdAndDelete).toBeCalledWith(productId);
+    });
+    it('200 return 잘되냐', async () => {
+        let deletedProduct = {
+            name: 'deletedProduct',
+            description: 'it is deleted'
+        }
+        productModel.findByIdAndDelete.mockReturnValue(deletedProduct);
+        await productController.deleteProduct(req, res, next);
+        expect(res.statusCode).toBe(200);
+        expect(res._getJSONData()).toStrictEqual(deletedProduct);
+        expect(res._isEndCalled).toBeTruthy();
+    });
+    it('404 return 잘되냐', async () => {
+        productModel.findByIdAndDelete.mockReturnValue(null);
+        await productController.deleteProduct(req, res, next);
+        expect(res.statusCode).toBe(404);
+        expect(res._isEndCalled()).toBeTruthy();
+    });
+    it('error handle', async () => {
+        const errorMessage = { message: 'Error' };
+        const rejectPromise = Promise.reject(errorMessage);
+        productModel.findByIdAndDelete.mockReturnValue(rejectPromise);
+        await productController.deleteProduct(req, res, next);
+        expect(next).toBeCalledWith(errorMessage);
     });
 });
